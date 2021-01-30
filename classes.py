@@ -1,13 +1,16 @@
 WHITE, BLACK, EMPTY = "WHITE", "BLACK", "EMPTY"
-
 class Game:
+    players: []
     pieces: []
     deadPieces: []
+    activePlayer = None
     def __init__(self):
         self.pieces = [Rook(0, 0, BLACK, self), Knight(1, 0, BLACK, self), Bishop(2, 0, BLACK, self), Queen(3, 0, BLACK, self), King(4, 0, BLACK, self), Bishop(5, 0, BLACK, self), Knight(6, 0, BLACK, self), Rook(7, 0, BLACK, self),
                        Pawn(0, 1, BLACK, self), Pawn(1, 1, BLACK, self), Pawn(2, 1, BLACK, self), Pawn(3, 1, BLACK, self), Pawn(4, 1, BLACK, self), Pawn(5, 1, BLACK, self), Pawn(6, 1, BLACK, self), Pawn(7, 1, BLACK, self),
-                       #Pawn(0, 6, WHITE, self), Pawn(1, 6, WHITE, self), Pawn(2, 6, WHITE, self), Pawn(3, 6, WHITE, self), Pawn(4, 6, WHITE, self), Pawn(5, 6, WHITE, self), Pawn(6, 6, WHITE, self), Pawn(7, 6, WHITE, self),
+                       Pawn(0, 6, WHITE, self), Pawn(1, 6, WHITE, self), Pawn(2, 6, WHITE, self), Pawn(3, 6, WHITE, self), Pawn(4, 6, WHITE, self), Pawn(5, 6, WHITE, self), Pawn(6, 6, WHITE, self), Pawn(7, 6, WHITE, self),
                        Rook(0, 7, WHITE, self), Knight(1, 7, WHITE, self), Bishop(2, 7, WHITE, self), Queen(3, 7, WHITE, self), King(4, 7, WHITE, self), Bishop(5, 7, WHITE, self), Knight(6, 7, WHITE, self), Rook(7, 7, WHITE, self)]
+        self.players = [Player(input("Who is playing white? "), WHITE, self), Player(input("Who is playing black? "), BLACK, self)]
+        self.activePlayer = self.players[0]
 
     def getEmptySpaces(self):
         empty = [[i, j] for j in range(8) for i in range(8)]
@@ -22,13 +25,32 @@ class Game:
             if piece.x == x and piece.y == y:
                 return piece
         return None
-
+    
+    def getAsciiBoard(self):
+        board = ["    0    1    2    3    4    5    6    7", "  " + "-" * 41]
+        for y in range(8):
+            row = f"{y} |"
+            for x in range(8):
+                piece = self.getXY(x, y)
+                row += f" {piece.getToken()} |" if piece != None else "    |"
+            board.append(row)
+            board.append("  " + "-" * 41)
+        return '\n'.join(board)
+class Player:
+    name: str
+    colour: str
+    game: Game
+    pieces: []
+    def __init__(self, name, colour, game):
+        self.name, self.colour, self.game = name, colour, game
+        self.pieces = [piece for piece in self.game.pieces if piece.colour == self.colour]
 class Piece:
     x: int
     y: int
     colour: str
     hasMoved: bool
     directions: []
+    token: str
     game: Game
     def __init__(self, x, y, colour, game):
         self.x, self.y, self.colour, self.game = x, y, colour, game
@@ -59,10 +81,14 @@ class Piece:
                     moves.append([x, y])
         return moves
 
+    def getToken(self):
+        return self.colour[0].lower() + self.token
+
     def toString(self):
         return f"{self.colour} {type(self)} on ({self.x}, {self.y})."
 
 class Pawn(Piece):
+    token = "P"
     def getAvailableMoves(self):
         moves = []
         direction = 1 if self.colour == BLACK else -1
@@ -79,26 +105,31 @@ class Pawn(Piece):
         return self.checkIllegalMoves(moves)
 
 class Rook(Piece):
+    token = "R"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
 
 class Knight(Piece):
+    token = "N"
     directions = [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(False)
 
 class Bishop(Piece):
+    token = "B"
     directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
 
 class Queen(Piece):
+    token = "Q"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
 
 class King(Piece):
+    token = "K"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(False)

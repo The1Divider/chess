@@ -8,8 +8,28 @@
 0, 6	1, 6	2, 6	3, 6	4, 6	5, 6	6, 6	7, 6
 0, 7	1, 7	2, 7	3, 7	4, 7	5, 7	6, 7	7, 7
 '''
-
 # main gameplay logic file
 from classes import *
 game = Game()
-print(game.pieces[-4].getAvailableMoves())
+
+def help():
+    print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - possible: lists possible moves\n - forfeit: admit defeat and immediately lose the game\n")
+
+def board():
+    print("this function has yet to be implemented due to a lazy developer")
+
+def move():
+    print("this function has yet to be implemented due to a lazy developer")
+
+def possible():
+    print("this function has yet to be implemented due to a lazy developer")
+
+def forfeit():
+    print("this function has yet to be implemented due to a lazy developer")
+
+commands = {"help": help,
+            "board": board,
+            "move": move,
+            "possible": possible}
+
+print(game.getAsciiBoard())
