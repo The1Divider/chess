@@ -12,6 +12,10 @@ class Game:
         self.players = [Player(input("Who is playing white? "), WHITE, self), Player(input("Who is playing black? "), BLACK, self)]
         self.activePlayer = self.players[0]
 
+    def cycleTurn(self):
+        self.activePlayer.hasMoved = False
+        self.activePlayer = self.players[0] if self.activePlayer.colour == BLACK else self.players[1]
+
     def getEmptySpaces(self):
         empty = [[i, j] for j in range(8) for i in range(8)]
         for piece in self.pieces:
@@ -26,7 +30,7 @@ class Game:
                 return piece
         return None
     
-    def getAsciiBoard(self):
+    def printAsciiBoard(self):
         board = ["    0    1    2    3    4    5    6    7", "  " + "-" * 41]
         for y in range(8):
             row = f"{y} |"
@@ -35,15 +39,19 @@ class Game:
                 row += f" {piece.getToken()} |" if piece != None else "    |"
             board.append(row)
             board.append("  " + "-" * 41)
-        return '\n'.join(board)
+        print('\n'.join(board))
 class Player:
     name: str
     colour: str
     game: Game
+    hasMoved: bool
     pieces: []
     def __init__(self, name, colour, game):
-        self.name, self.colour, self.game = name, colour, game
+        self.name, self.colour, self.game, self.hasMoved = name, colour, game, False
         self.pieces = [piece for piece in self.game.pieces if piece.colour == self.colour]
+
+    def doMove(self):   # TODO
+        pass
 class Piece:
     x: int
     y: int

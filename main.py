@@ -16,7 +16,7 @@ def help():
     print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - possible: lists possible moves\n - forfeit: admit defeat and immediately lose the game\n")
 
 def board():
-    print("this function has yet to be implemented due to a lazy developer")
+    game.printAsciiBoard()
 
 def move():
     print("this function has yet to be implemented due to a lazy developer")
@@ -32,4 +32,14 @@ commands = {"help": help,
             "move": move,
             "possible": possible}
 
-print(game.getAsciiBoard())
+over = False
+while not over:
+    player = game.activePlayer
+    print(f"It is {player.name}'s turn. {player.name} is playing {player.colour}.")
+    while not player.hasMoved:
+        command = input(">>> ")
+        while command not in commands.keys():
+            print("Invalid command. Type 'help' for help.")
+            command = input(">>> ")
+        commands[command]()
+    game.cycleTurn()
