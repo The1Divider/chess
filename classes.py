@@ -4,16 +4,20 @@ class Game:
     pieces: []
     deadPieces: []
     activePlayer = None
+    nonActivePlayer = None
     def __init__(self):
         self.pieces = [Rook(0, 0, BLACK, self), Knight(1, 0, BLACK, self), Bishop(2, 0, BLACK, self), Queen(3, 0, BLACK, self), King(4, 0, BLACK, self), Bishop(5, 0, BLACK, self), Knight(6, 0, BLACK, self), Rook(7, 0, BLACK, self),
                        Pawn(0, 1, BLACK, self), Pawn(1, 1, BLACK, self), Pawn(2, 1, BLACK, self), Pawn(3, 1, BLACK, self), Pawn(4, 1, BLACK, self), Pawn(5, 1, BLACK, self), Pawn(6, 1, BLACK, self), Pawn(7, 1, BLACK, self),
                        Pawn(0, 6, WHITE, self), Pawn(1, 6, WHITE, self), Pawn(2, 6, WHITE, self), Pawn(3, 6, WHITE, self), Pawn(4, 6, WHITE, self), Pawn(5, 6, WHITE, self), Pawn(6, 6, WHITE, self), Pawn(7, 6, WHITE, self),
                        Rook(0, 7, WHITE, self), Knight(1, 7, WHITE, self), Bishop(2, 7, WHITE, self), Queen(3, 7, WHITE, self), King(4, 7, WHITE, self), Bishop(5, 7, WHITE, self), Knight(6, 7, WHITE, self), Rook(7, 7, WHITE, self)]
         self.players = [Player(input("Who is playing white? "), WHITE, self), Player(input("Who is playing black? "), BLACK, self)]
+        self.deadPieces = []
         self.activePlayer = self.players[0]
+        self.nonActivePlayer = self.players[1]
 
     def cycleTurn(self):
         self.activePlayer.hasMoved = False
+        self.nonActivePlayer = self.activePlayer
         self.activePlayer = self.players[0] if self.activePlayer.colour == BLACK else self.players[1]
 
     def getEmptySpaces(self):
@@ -30,16 +34,18 @@ class Game:
                 return piece
         return None
     
-    def printAsciiBoard(self):
+    def getAsciiBoard(self):
         board = ["    a    b    c    d    e    f    g    h", "  " + "-" * 41]
         for y in range(8):
             row = f"{8 - y} |"
             for x in range(8):
                 piece = self.getXY(x, y)
                 row += f" {piece.getToken()} |" if piece != None and not piece.captured else "    |"
+                # 2 + 5 * (x + 1)
+                #3 | bN |    |
             board.append(row)
             board.append("  " + "-" * 41)
-        print('\n'.join(board))
+        return board
     
     def notationToXY(self, notation):
         notation = notation.lower()
@@ -66,6 +72,8 @@ class Player:
         if capture != None:
             capture.x, capture.y = -1, -1   # set the xy values to off-board ones
             capture.captured = True
+            self.game.nonActivePlayer.pieces.remove(capture)
+            self.game.deadPieces.append(capture)
 class Piece:
     x: int
     y: int
@@ -109,6 +117,12 @@ class Piece:
 
     def toString(self):
         return f"{self.colour} {type(self)} on ({self.x}, {self.y})."
+
+    def getPossibleBoard(self):
+        board = self.game.getAsciiBoard()
+        for x, y in self.getAvailableMoves():
+            board[2 + y * 2] = board[2 + y * 2][:1 + 5 * (x + 1)] + "*" + board[2 + 2 * y][2 + 5 * (x + 1):]
+        return board
 class Pawn(Piece):
     token = "P"
     def getAvailableMoves(self):

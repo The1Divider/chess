@@ -17,10 +17,16 @@ def help():
     print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - forfeit: admit defeat and immediately lose the game\n")
 
 def board():
-    game.printAsciiBoard()
+    print('\n'.join(game.getAsciiBoard()))
 
-# maybe update this in the future so that you can select a piece and it'll print out the board
-# with a * beside every tile the piece can move to? add a visual level for those players who need it
+def possible():
+    x, y = game.notationToXY(input("Select the piece you want to view: "))
+    piece = game.getXY(x, y)
+    while piece == None or piece.colour != player.colour:
+        x, y = game.notationToXY(input("Invalid choice, select another piece: "))
+        piece = game.getXY(x, y)
+    print('\n'.join(piece.getPossibleBoard()))
+
 def move():
     x, y = game.notationToXY(input("Select the piece you want to move: "))
     piece = game.getXY(x, y)
@@ -29,7 +35,7 @@ def move():
         piece = game.getXY(x, y)
     moves = [game.XYToNotation(x, y) for [x, y] in piece.getAvailableMoves()]
     if moves != []:
-        print("Possible moves: " + ', '.join(moves))
+        print('\n'.join(piece.getPossibleBoard()))
         move = input("Input your move: ")
         while move not in moves:
             move = input("Invalid choice, try again: ")
@@ -43,7 +49,8 @@ def forfeit():
 
 commands = {"help": help,
             "board": board,
-            "move": move}
+            "move": move,
+            "possible":possible}
 
 over = False
 while not over:
