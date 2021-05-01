@@ -23,7 +23,7 @@ class Game:
             if pos in empty:
                 empty.remove(pos)
         return empty
-    
+
     def getXY(self, x, y):
         for piece in self.pieces:
             if piece.x == x and piece.y == y:
@@ -43,7 +43,10 @@ class Game:
     
     def notationToXY(self, notation):
         notation = notation.lower()
-        return [97 - ord(notation[0]), 8 - int(notation[1])]
+        return [ord(notation[0]) - 97, 8 - int(notation[1])]
+
+    def XYToNotation(self, x, y):
+        return chr(97 + x) + (str)(8 - y)
 class Player:
     name: str
     colour: str
@@ -112,7 +115,7 @@ class Pawn(Piece):
                 moves.append([x, y])
         # if y + 1 and y + 2 is empty and the pawn hasn't moved yet, allow it to move further on its first turn
         if self.game.getXY(self.x, self.y + direction) == None and self.game.getXY(self.x, self.y + direction * 2) == None and not self.hasMoved:
-            moves.append([self.x, self.y + 2])
+            moves.append([self.x, self.y + direction * 2])
         return self.checkIllegalMoves(moves)
 class Rook(Piece):
     token = "R"
