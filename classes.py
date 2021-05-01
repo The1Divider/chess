@@ -36,7 +36,7 @@ class Game:
             row = f"{8 - y} |"
             for x in range(8):
                 piece = self.getXY(x, y)
-                row += f" {piece.getToken()} |" if piece != None else "    |"
+                row += f" {piece.getToken()} |" if piece != None and not piece.captured else "    |"
             board.append(row)
             board.append("  " + "-" * 41)
         print('\n'.join(board))
@@ -47,6 +47,7 @@ class Game:
 
     def XYToNotation(self, x, y):
         return chr(97 + x) + (str)(8 - y)
+
 class Player:
     name: str
     colour: str
@@ -57,19 +58,26 @@ class Player:
         self.name, self.colour, self.game, self.hasMoved = name, colour, game, False
         self.pieces = [piece for piece in self.game.pieces if piece.colour == self.colour]
 
-    def doMove(self):   # TODO
-        pass
+    def doMove(self, piece, x, y):
+        capture = self.game.getXY(x, y)      # piece/place to be captured
+        piece.x, piece.y = x, y         # update piece's xy values
+        self.hasMoved = True
+        # if the move prompted a piece capture
+        if capture != None:
+            capture.x, capture.y = -1, -1   # set the xy values to off-board ones
+            capture.captured = True
 class Piece:
     x: int
     y: int
     colour: str
     hasMoved: bool
+    captured: bool
     directions: []
     token: str
     game: Game
     def __init__(self, x, y, colour, game):
         self.x, self.y, self.colour, self.game = x, y, colour, game
-        self.hasMoved = False
+        self.hasMoved, self.captured = False, False
     
     def checkIllegalMoves(self, moves):
         for x, y in moves:

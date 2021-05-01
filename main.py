@@ -14,31 +14,36 @@ from classes import *
 game = Game()
 
 def help():
-    print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - possible: lists possible moves\n - forfeit: admit defeat and immediately lose the game\n")
+    print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - forfeit: admit defeat and immediately lose the game\n")
 
 def board():
     game.printAsciiBoard()
 
+# maybe update this in the future so that you can select a piece and it'll print out the board
+# with a * beside every tile the piece can move to? add a visual level for those players who need it
 def move():
-    print("this function has yet to be implemented due to a lazy developer")
-
-def possible():
-    x, y = game.notationToXY(input("Select the piece you want to view possible moves for: "))
+    x, y = game.notationToXY(input("Select the piece you want to move: "))
     piece = game.getXY(x, y)
-    while piece == None:
+    while piece == None or piece.colour != player.colour:
         x, y = game.notationToXY(input("Invalid choice, select another piece: "))
         piece = game.getXY(x, y)
     moves = [game.XYToNotation(x, y) for [x, y] in piece.getAvailableMoves()]
-    if moves != []: print(', '.join(moves))
-    else: print("No possible moves for that piece.")
+    if moves != []:
+        print("Possible moves: " + ', '.join(moves))
+        move = input("Input your move: ")
+        while move not in moves:
+            move = input("Invalid choice, try again: ")
+        x, y = game.notationToXY(move)
+        player.doMove(piece, x, y)
+    else:
+        print("No possible moves for that piece, exiting.")
 
 def forfeit():
     print("this function has yet to be implemented due to a lazy developer")
 
 commands = {"help": help,
             "board": board,
-            "move": move,
-            "possible": possible}
+            "move": move}
 
 over = False
 while not over:
