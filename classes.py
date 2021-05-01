@@ -31,15 +31,19 @@ class Game:
         return None
     
     def printAsciiBoard(self):
-        board = ["    0    1    2    3    4    5    6    7", "  " + "-" * 41]
+        board = ["    a    b    c    d    e    f    g    h", "  " + "-" * 41]
         for y in range(8):
-            row = f"{y} |"
+            row = f"{8 - y} |"
             for x in range(8):
                 piece = self.getXY(x, y)
                 row += f" {piece.getToken()} |" if piece != None else "    |"
             board.append(row)
             board.append("  " + "-" * 41)
         print('\n'.join(board))
+    
+    def notationToXY(self, notation):
+        notation = notation.lower()
+        return [97 - ord(notation[0]), 8 - int(notation[1])]
 class Player:
     name: str
     colour: str
@@ -94,7 +98,6 @@ class Piece:
 
     def toString(self):
         return f"{self.colour} {type(self)} on ({self.x}, {self.y})."
-
 class Pawn(Piece):
     token = "P"
     def getAvailableMoves(self):
@@ -111,31 +114,26 @@ class Pawn(Piece):
         if self.game.getXY(self.x, self.y + direction) == None and self.game.getXY(self.x, self.y + direction * 2) == None and not self.hasMoved:
             moves.append([self.x, self.y + 2])
         return self.checkIllegalMoves(moves)
-
 class Rook(Piece):
     token = "R"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
-
 class Knight(Piece):
     token = "N"
     directions = [[2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(False)
-
 class Bishop(Piece):
     token = "B"
     directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
-
 class Queen(Piece):
     token = "Q"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
     def getAvailableMoves(self):
         return super().getAvailableMoves(True)
-
 class King(Piece):
     token = "K"
     directions = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]]
