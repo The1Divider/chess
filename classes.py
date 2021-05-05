@@ -52,7 +52,7 @@ class Game:
         return [ord(notation[0]) - 97, 8 - int(notation[1])]
 
     def XYToNotation(self, x, y):
-        return chr(97 + x) + (str)(8 - y)
+        return chr(97 + x) + str(8 - y)
 
 class Player:
     name: str
