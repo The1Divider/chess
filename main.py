@@ -14,25 +14,27 @@ from classes import *
 game = Game()
 
 def help():
-    print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - board: prints out the current board\n - move: take your turn and move a piece\n - forfeit: admit defeat and immediately lose the game\n")
+    print("\nHelp for h4ck3rch3ss:\n - help: prints this help message\n - possible <piece>: view the possible moves for <piece>\n - board: prints out the current board\n - move <piece>: take your turn and move <piece>. once you run move, you must move the piece you pick\n - forfeit: admit defeat and immediately lose the game\n")
 
 def board():
     print('\n'.join(game.getAsciiBoard()))
 
-def possible():
-    x, y = game.notationToXY(input("Select the piece you want to view: "))
+def possible(choice):
+    x, y = game.notationToXY(choice)
     piece = game.getXY(x, y)
-    while piece == None or piece.colour != player.colour:
-        x, y = game.notationToXY(input("Invalid choice, select another piece: "))
-        piece = game.getXY(x, y)
-    print('\n'.join(piece.getPossibleBoard()))
+    if piece == None or piece.colour != player.colour:
+        print("Invalid choice.")
+    moves = [game.XYToNotation(x, y) for [x, y] in piece.getAvailableMoves()]
+    if moves != []:
+        print('\n'.join(piece.getPossibleBoard()))
+    else:
+        print("No possible moves for that piece, exiting.")
 
-def move():
-    x, y = game.notationToXY(input("Select the piece you want to move: "))
+def move(choice):
+    x, y = game.notationToXY(choice)
     piece = game.getXY(x, y)
-    while piece == None or piece.colour != player.colour:
-        x, y = game.notationToXY(input("Invalid choice, select another piece: "))
-        piece = game.getXY(x, y)
+    if piece == None or piece.colour != player.colour:
+        print("Invalid choice.")
     moves = [game.XYToNotation(x, y) for [x, y] in piece.getAvailableMoves()]
     if moves != []:
         print('\n'.join(piece.getPossibleBoard()))
@@ -57,9 +59,14 @@ while not over:
     player = game.activePlayer
     print(f"It is {player.name}'s turn. {player.name} is playing {player.colour}.")
     while not player.hasMoved:
-        command = input(">>> ")
-        while command not in commands.keys():
+        command = input(">>> ").lower()
+        while command.split()[0] not in commands.keys():
             print("Invalid command. Type 'help' for help.")
-            command = input(">>> ")
-        commands[command]()
+            command = input(">>> ").lower()
+        if len(command.split()) == 1 and (command == "move" or command == "possible"):
+            print(f"You must provide a parameter for {command}.")
+        elif len(command.split()) == 1:
+            commands[command]()
+        else:
+            commands[command.split()[0]](command.split()[1])
     game.cycleTurn()
