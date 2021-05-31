@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from copy import deepcopy
 from enum import Enum, auto
 
@@ -22,7 +23,6 @@ PIECE = Literal[PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING]
 p, r, n, b, q, k = Pawn, Rook, Knight, Bishop, Queen, King
 
 
-# TODO black's moves have to be flipped (for just pawns?)
 # TODO import / export PGN !!(For testing)!!
 # TODO test positions/scenarios
 # TODO integrate stockfish (/alpha zero?)
@@ -69,13 +69,14 @@ class Board(dict):
     def display_ascii_board(self) -> None:
         _board = ["    a    b    c    d    e    f    g    h", "  " + "-" * 41]
         for y in range(1, 9):
-            rank = f"{9 - y} |"
+            rank = f"{y} |"
             for x in range(1, 9):
                 piece = self[f"{chr(x + 96)}{y}"]
                 rank += f" {str(piece)}  |" if piece is not None else "    |"
             _board.append(rank)
             _board.append("  " + "-" * 41)
 
+        _board.reverse()
         for row in _board:
             print(row)
 
@@ -183,9 +184,21 @@ class Game:
 
         opponent_moves = []
         for _, piece in board.items():
-            if piece.colour != self.current_player.colour:
-                moves = self.get_legal_moves(piece)
-                [opponent_moves.append(str(move)) for move in moves]
+            if piece is None:
+                continue
+            elif isinstance(piece, King):
+                with suppress(InvalidPosition):
+                    for move in piece.move_atlas:
+                        new_pos = str(piece.pos + move)
+                        piece_at_pos = self.board.get(new_pos)
+                        if piece_at_pos is None or piece_at_pos.colour != self.current_player.colour:
+                            opponent_moves.append(new_pos)
+
+
+            else:
+                if piece.colour != self.current_player.colour:
+                    moves = self.get_legal_moves(piece)
+                    [opponent_moves.append(str(move)) for move in moves]
 
         return opponent_moves
 
@@ -220,7 +233,17 @@ class Game:
             except AttributeError:
                 pass
 
-        legal_king_moves = self.get_legal_moves(king)
+        legal_king_moves = []
+
+        with suppress(InvalidPosition):
+            for move in king.move_atlas:
+                new_pos = king.pos + move
+                piece_at_pos = self.board.get(new_pos)
+                if piece_at_pos is None or piece_at_pos.colour == self.current_player.colour:
+                    continue
+                else:
+                    legal_king_moves.append(move)
+
         opponent_moves = self._get_opponent_moves()
 
         if all(legal_move in opponent_moves for legal_move in legal_king_moves):

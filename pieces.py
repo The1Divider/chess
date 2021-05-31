@@ -46,11 +46,14 @@ class BoardCoordinates:
 
     def __sub__(self, other: Union[tuple[int, int], BoardCoordinates]):  # bounds check not needed (only used for pawn)
         if isinstance(other, tuple):
-            return BoardCoordinates(*self.check_bounds(self.x - other[0], self.y - other[1]))
+            return BoardCoordinates(self.x - other[0], self.y - other[1])
         elif isinstance(other, BoardCoordinates):
-            return BoardCoordinates(*self.check_bounds(self.x - other.x, self.y - other.y))
+            return BoardCoordinates(self.x - other.x, self.y - other.y)
         else:
             raise NotImplemented
+
+    def __abs__(self):
+        return abs(self.x), abs(self.y)
 
     def __str__(self):
         return self._get_notation()

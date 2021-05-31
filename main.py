@@ -9,18 +9,20 @@ def start() -> Game:
 
     return Game(player_1, player_2)
 
+
 def main():
     game = start()
     move_status = None
     while move_status != MoveStatus.KING_IN_CHECKMATE:
         game.board.display_ascii_board()
-        player_input = input(">").split(" ")
-
-        if len(player_input) > 2:
-            pass  # error
 
         piece, move_position = None, None
         while piece is None or move_position is None:
+            player_input = input(">").split(" ")
+
+            if len(player_input) > 2:
+                print(f"Invalid input: {player_input}")
+
             try:
                 piece = game.board.get(player_input[0])
                 if piece is None:
