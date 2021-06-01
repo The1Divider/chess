@@ -214,6 +214,7 @@ class Game:
             try:
                 if move == (0, 2) and pawn.has_moved:
                     continue
+
                 new_move = pawn.pos + move
 
                 # check board
@@ -222,16 +223,22 @@ class Game:
                 if piece_at_move is not None and piece_at_move.colour == self.current_player.colour:
                     continue
 
-                elif piece_at_move is None and move in ((-1, 1), (1, 1)):
+                if piece_at_move is None and move in ((-1, 1), (1, 1), (1, -1), (-1, -1)):
                     continue
 
                 # check en passant
                 if self.en_passant_target is not None:
-                    if self.en_passant_target == str(pawn.pos + (-1, 0)):
-                        legal_moves.add(pawn.pos + (-1, 1))
-                    elif self.en_passant_target == str(pawn.pos + (1, 0)):
-                        legal_moves.add(pawn.pos + (1, 1))
+                    try:
+                        if self.en_passant_target == str(pawn.pos + (-1, 0)):
+                            legal_moves.add(pawn.pos + (-1, 1) if pawn.colour == WHITE else pawn.pos + (-1, -1))
+                    except InvalidPosition:
+                        pass
 
+                    try:
+                        if self.en_passant_target == str(pawn.pos + (1, 0)):
+                            legal_moves.add(pawn.pos + (1, 1) if pawn.colour == WHITE else pawn.pos + (1, -1))
+                    except InvalidPosition:
+                        pass
                 legal_moves.add(new_move)
 
             except InvalidPosition:
@@ -342,7 +349,7 @@ class Game:
                             legal_moves.add(new_pos_notation)
                         break
 
-                    legal_moves.add(new_pos_notation)
+                    legal_moves.add(new_pos)
 
             elif self.board[str(new_pos)] is not None and self.board[str(new_pos)].colour != self.current_player.colour:
                 legal_moves.add(new_pos)
@@ -374,16 +381,32 @@ class Game:
 
     def _make_pawn_move(self, pawn: Pawn, new_move_position: BoardCoordinates) -> MoveStatus:
         move_status, current_pos, move_pos = self._set_up_move(pawn, new_move_position)
+        piece_at_board_pos = None
 
         if move_status != MoveStatus.VALID_SETUP:
             return move_status
 
         if abs(pawn.pos - new_move_position) == (1, 1):
-            piece_at_board_pos = self.board.get(str(
-                new_move_position - (0, 1) if self.current_player.colour == WHITE else new_move_position + (0, 1)
-            ))
+
+            try:
+                if self.en_passant_target == str(pawn.pos + (-1, 0)):
+                    piece_at_board_pos = self.board.get(str(pawn.pos + (-1, 0)))
+
+            except InvalidPosition:
+                pass
+
+            try:
+                if self.en_passant_target == str(pawn.pos + (1, 0)):
+                    piece_at_board_pos = self.board.get(str(pawn.pos + (1, 0)))
+
+            except InvalidPosition:
+                pass
+
+            if piece_at_board_pos is None:
+                piece_at_board_pos = self.board.get(str(new_move_position))
+
             self.current_player.captured_pieces.append(piece_at_board_pos)
-            self.board.set(piece_at_board_pos.pos, None)
+            self.board.set(str(piece_at_board_pos.pos), None)
 
         if abs(pawn.pos - new_move_position) in ((0, -2), (0, 2)):
 
@@ -401,10 +424,12 @@ class Game:
             except InvalidPosition:
                 pass
 
-        pawn.has_moved = True
+            pawn.has_moved = True
 
         self.board.set(current_pos, None)
         self.board.set(move_pos, pawn)
+
+        return MoveStatus.VALID_MOVE
 
     def _make_king_move(self, piece: King, new_move_position: BoardCoordinates) -> MoveStatus:
         move_status, current_pos, move_pos, legal_moves = self._set_up_move(piece, new_move_position)
@@ -465,6 +490,7 @@ class Game:
         legal_moves = self.get_legal_moves(piece)
 
         if new_move_position not in legal_moves:
+            print(new_move_position, legal_moves)
             return MoveStatus.INVALID_MOVE  # Illegal, illegal move
 
         temp_board = deepcopy(self.board)
