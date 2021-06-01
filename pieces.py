@@ -140,20 +140,19 @@ class Piece:
     def __init__(self):
         self.pos = BoardCoordinates(-1, -1)  # init with invalid pos
 
-        if self.colour == BLACK:  # flip y direction for black (only affects pawns?)
-
-            for index, move in enumerate(self.move_atlas):
-                self.move_atlas[index] = (move[0], -move[1])
-
 
 class Pawn(Piece):
     move_atlas = [(0, 1), (0, 2), (1, 1), (-1, 1)]
     can_make_long_move = False
     has_moved = False
+    atlas_was_flipped = False
 
     def __init__(self, colour: Colour):
         self.colour = colour
         super().__init__()
+
+        if self.colour == BLACK:
+            self.move_atlas = [(move[0], -move[1]) for move in self.move_atlas]
 
     def __str__(self):
         return 'P' if self.colour == WHITE else 'p'
