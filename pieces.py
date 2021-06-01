@@ -39,6 +39,7 @@ class BoardCoordinates:
     def __eq__(self, other: Union[BoardCoordinates, str]):
         if isinstance(other, str):  # not sure where this is taking place but is needed to fix this garbage
             return str(self) == other
+
         return self.x == other.x and self.y == other.y
 
     def __hash__(self):
@@ -47,16 +48,20 @@ class BoardCoordinates:
     def __add__(self, other: Union[tuple[int, int], BoardCoordinates]):
         if isinstance(other, tuple):
             return BoardCoordinates(*self.check_bounds(self.x + other[0], self.y + other[1]))
+
         elif isinstance(other, BoardCoordinates):
             return BoardCoordinates(*self.check_bounds(self.x + other.x, self.y + other.y))
+
         else:
             raise NotImplemented
 
-    def __sub__(self, other: Union[tuple[int, int], BoardCoordinates]):  # bounds check not needed (only used for pawn)
+    def __sub__(self, other: Union[tuple[int, int], BoardCoordinates]):  # bounds check not needed (only used for calc)
         if isinstance(other, tuple):
             return BoardCoordinates(self.x - other[0], self.y - other[1])
+
         elif isinstance(other, BoardCoordinates):
             return BoardCoordinates(self.x - other.x, self.y - other.y)
+
         else:
             raise NotImplemented
 
@@ -90,20 +95,28 @@ class BoardCoordinates:
 
     def check_bounds(self, *coordinate) -> Optional[Union[tuple[int, int], BoardCoordinates]]:
         try:
+
             coordinate = coordinate[0] if isinstance(coordinate[0], (list, tuple, BoardCoordinates)) else coordinate
+
         except IndexError:
+
             if self.x < 1 or self.x > 8 or self.y < 1 or self.y > 8:
                 raise InvalidPosition(self)
+
             return None
 
         if isinstance(coordinate, (list, tuple)):
+
             if coordinate[0] < 1 or coordinate[0] > 8 or coordinate[1] < 1 or coordinate[1] > 8:
                 raise InvalidPosition(coordinate)
+
             return coordinate
 
         elif isinstance(coordinate, BoardCoordinates):
+
             if coordinate.x < 1 or coordinate.x > 8 or coordinate.y < 1 or coordinate.y > 8:
                 raise InvalidPosition(coordinate)
+
             return coordinate
 
 
@@ -111,29 +124,36 @@ class InvalidPosition(Exception):
     def __init__(self, position: Union[str, list[int, int], tuple, BoardCoordinates]):
         if isinstance(position, (list, tuple)):
             position = f"({position[0]}, {position[1]})"
+
         elif isinstance(position, BoardCoordinates):
             position = str(position)
+
         super().__init__(f"Invalid position received: {position}")
 
 
 class Piece:
+    pos: BoardCoordinates
     colour: Colour
     move_atlas: list[tuple[int, int]]
     can_make_long_move: bool
-    pos: BoardCoordinates
 
     def __init__(self):
         self.pos = BoardCoordinates(-1, -1)  # init with invalid pos
 
+        if self.colour == BLACK:  # flip y direction for black (only affects pawns?)
+
+            for index, move in enumerate(self.move_atlas):
+                self.move_atlas[index] = (move[0], -move[1])
+
 
 class Pawn(Piece):
+    move_atlas = [(0, 1), (0, 2), (1, 1), (-1, 1)]
     can_make_long_move = False
     has_moved = False
-    move_atlas = [(0, 1), (0, 2), (1, 1), (-1, 1)]
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'P' if self.colour == WHITE else 'p'
@@ -145,20 +165,20 @@ class Rook(Piece):
     has_moved = False
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'R' if self.colour == WHITE else 'r'
 
 
 class Knight(Piece):
-    can_make_long_move = False
     move_atlas = [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]
+    can_make_long_move = False
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'N' if self.colour == WHITE else 'n'
@@ -169,8 +189,8 @@ class Bishop(Piece):
     can_make_long_move = True
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'B' if self.colour == WHITE else 'b'
@@ -181,21 +201,21 @@ class Queen(Piece):
     can_make_long_move = True
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'Q' if self.colour == WHITE else 'q'
 
 
 class King(Piece):
+    move_atlas = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     can_make_long_move = False
     has_moved = False
-    move_atlas = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
     def __init__(self, colour: Colour):
-        super().__init__()
         self.colour = colour
+        super().__init__()
 
     def __str__(self):
         return 'K' if self.colour == WHITE else 'k'
