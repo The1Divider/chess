@@ -36,6 +36,14 @@ class BoardCoordinates:
     x: int
     y: int
 
+    def __eq__(self, other: Union[BoardCoordinates, str]):
+        if isinstance(other, str):  # not sure where this is taking place but is needed to fix this garbage
+            return str(self) == other
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     def __add__(self, other: Union[tuple[int, int], BoardCoordinates]):
         if isinstance(other, tuple):
             return BoardCoordinates(*self.check_bounds(self.x + other[0], self.y + other[1]))
@@ -120,6 +128,7 @@ class Piece:
 
 class Pawn(Piece):
     can_make_long_move = False
+    has_moved = False
     move_atlas = [(0, 1), (0, 2), (1, 1), (-1, 1)]
 
     def __init__(self, colour: Colour):

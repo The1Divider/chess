@@ -10,7 +10,6 @@ from pieces import *
 WHITE, BLACK = "WHITE", "BLACK"
 piece_colour = Literal["WHITE", "BLACK"]
 
-
 PAWN = Literal["P", "p"]
 ROOK = Literal["R", "r"]
 KNIGHT = Literal["N", "n"]
@@ -22,6 +21,12 @@ PIECE = Literal[PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING]
 
 p, r, n, b, q, k = Pawn, Rook, Knight, Bishop, Queen, King
 
+
+# TODO align en passant target calc with FEN notation ({rank}[3/6]) (if pawn.x +/- 1 == target -> en passant)
+# TODO implement halfmove clock
+# TODO implement move count
+# TODO implement repetition rules (should be 'fairly' straightforward as moves need to be logged anyways
+#      (might have difficulty with pattern rec)
 
 # TODO import / export PGN !!(For testing)!!
 # TODO test positions/scenarios
@@ -46,8 +51,72 @@ class Board(dict):
     def __init__(self, _board_dict: dict[str, [Optional[Piece]]]):
         super().__init__(_board_dict)
 
-    def to_fen(self):
-        pass
+    def to_fen(self, game: Game):
+        # TODO half/fullmove counter
+        fen = {"rank_1": "",
+               "rank_2": "",
+               "rank_3": "",
+               "rank_4": "",
+               "rank_5": "",
+               "rank_6": "",
+               "rank_7": "",
+               "rank_8": "",
+               "last_to_move": "w" if game.current_player.colour == WHITE else "b",
+               "castling_rights": "-",
+               "en_passant_target": "-",
+               "halfmove_clock": "0",
+               "fullmove_counter": "0"
+               }
+
+        # Piece placement
+        rank_counter = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0}
+        for pos, piece in self.items():
+            if piece is not None:
+                rank = f"rank_{pos[1]}"
+                if rank_counter[pos[1]] != 0:
+                    fen[rank] += str(rank_counter[pos[1]])
+                fen[rank] += str(piece)
+                rank_counter[pos[1]] = 0
+            else:
+                rank_counter[pos[1]] += 1
+
+        for rank, count in rank_counter.items():
+            if count != 0:
+                fen[f"rank_{rank}"] += str(count)
+
+        # Castling rights
+        castling_rights = ""
+        legal_white_king_moves = game.get_legal_moves(game.w_king)
+        possible_white_h_rook = game.board.get("h1")
+        possible_white_a_rook = game.board.get("a1")
+        possible_black_h_rook = game.board.get("h8")
+        possible_black_a_rook = game.board.get("a8")
+
+        if not game.w_king.has_moved:
+            if possible_white_h_rook is not None and not possible_white_h_rook.has_moved:
+                castling_rights += "K"
+            if possible_white_a_rook is not None and not possible_white_a_rook.has_moved:
+                castling_rights += "Q"
+        if not game.b_king.has_moved:
+            if possible_black_h_rook is not None and not possible_black_h_rook.has_moved:
+                castling_rights += "k"
+            if possible_black_a_rook is not None and not possible_black_a_rook.has_moved:
+                castling_rights += "q"
+        fen["castling_rights"] = castling_rights
+
+        legal_black_king_moves = game.get_legal_moves(game.b_king)
+
+        # FEN assembly
+        # ei: rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
+        final_fen = "".join(fen[f"rank_{rank}"] + "/" for rank in range(8, 1, -1))
+        final_fen += fen[f"rank_{1}"]
+        final_fen += " " + fen["last_to_move"]
+        final_fen += " " + fen["castling_rights"]
+        final_fen += " " + fen["en_passant_target"]
+        final_fen += " " + fen["halfmove_clock"]
+        final_fen += " " + fen["fullmove_counter"]
+
+        print(final_fen)
 
     def to_pgn(self):
         pass
@@ -111,6 +180,7 @@ class Game:
         self.current_player = self.players["WHITE"]
         self.last_move = {"WHITE": {"piece": None, "pos": None},
                           "BLACK": {"piece": None, "pos": None}}
+        self.en_passant_target = None
 
         # TODO is this easier?
         # self.current_piece
@@ -137,41 +207,32 @@ class Game:
         else:  # If not possible
             return False
 
-    def _get_legal_pawn_moves(self, pawn: Pawn) -> list[BoardCoordinates]:
-        legal_moves = []
+    def _get_legal_pawn_moves(self, pawn: Pawn) -> set[BoardCoordinates]:
+        legal_moves = set()
 
         for move in pawn.move_atlas:
             try:
-                if move == (0, 2) and pawn.pos.y not in (2, 7):
+                if move == (0, 2) and pawn.has_moved:
                     continue
                 new_move = pawn.pos + move
 
                 # check board
                 piece_at_move = self.board.get(str(new_move))
+
                 if piece_at_move is not None and piece_at_move.colour == self.current_player.colour:
                     continue
+
                 elif piece_at_move is None and move in ((-1, 1), (1, 1)):
                     continue
 
                 # check en passant
-                opponent_colour = WHITE if self.current_player.colour == WHITE else BLACK
+                if self.en_passant_target is not None:
+                    if self.en_passant_target == str(pawn.pos + (-1, 0)):
+                        legal_moves.add(pawn.pos + (-1, 1))
+                    elif self.en_passant_target == str(pawn.pos + (1, 0)):
+                        legal_moves.add(pawn.pos + (1, 1))
 
-                last_move = self.last_move[opponent_colour]
-                last_move_piece: Optional[Piece] = last_move["piece"]
-                last_move_pos: Optional[BoardCoordinates] = last_move["pos"]
-
-                if last_move_piece is not None and last_move_pos is not None:
-                    long_step_rank = 4 if opponent_colour == WHITE else 5
-
-                    if str(piece_at_move) == str(last_move_piece) and last_move_pos.x == long_step_rank:
-
-                        if pawn.pos.x == last_move_pos.x + 1:
-                            legal_moves.append(pawn.pos + (1, 1))
-
-                        elif pawn.pos.x == last_move_pos.x - 1:
-                            legal_moves.append(pawn.pos + (-1, 1))
-
-                legal_moves.append(new_move)
+                legal_moves.add(new_move)
 
             except InvalidPosition:
                 pass
@@ -186,6 +247,7 @@ class Game:
         for _, piece in board.items():
             if piece is None:
                 continue
+
             elif isinstance(piece, King):
                 with suppress(InvalidPosition):
                     for move in piece.move_atlas:
@@ -194,7 +256,6 @@ class Game:
                         if piece_at_pos is None or piece_at_pos.colour != self.current_player.colour:
                             opponent_moves.append(new_pos)
 
-
             else:
                 if piece.colour != self.current_player.colour:
                     moves = self.get_legal_moves(piece)
@@ -202,8 +263,8 @@ class Game:
 
         return opponent_moves
 
-    def _get_legal_king_moves(self, king: King) -> dict[str, [Optional[list[BoardCoordinates]], dict[str, [bool]]]]:
-        legal_moves = []
+    def _get_legal_king_moves(self, king: King) -> dict[str, [Optional[set[BoardCoordinates]], dict[str, [bool]]]]:
+        legal_moves = set()
         a_castling, h_castling = False, False
 
         # check if castling possible
@@ -233,33 +294,27 @@ class Game:
             except AttributeError:
                 pass
 
-        legal_king_moves = []
-
         with suppress(InvalidPosition):
             for move in king.move_atlas:
                 new_pos = king.pos + move
-                piece_at_pos = self.board.get(new_pos)
+                piece_at_pos = self.board.get(str(new_pos))
                 if piece_at_pos is None or piece_at_pos.colour == self.current_player.colour:
                     continue
                 else:
-                    legal_king_moves.append(move)
+                    legal_moves.add(move)
 
         opponent_moves = self._get_opponent_moves()
 
-        if all(legal_move in opponent_moves for legal_move in legal_king_moves):
+        if all(legal_move in opponent_moves for legal_move in legal_moves):
             legal_moves = None  # Checkmate
-        else:
-            for move in legal_king_moves:
-                if move not in opponent_moves:
-                    legal_moves.append(move)
 
         return {"legal_moves": legal_moves, "legal_castling": {"a": a_castling, "h": h_castling}}
 
     def get_legal_moves(self, piece: Piece) -> \
-            Union[list[BoardCoordinates], dict[str, [list[BoardCoordinates], dict[str, str]]]]:
+            Union[set[BoardCoordinates], dict[str, [set[BoardCoordinates], dict[str, str]]]]:
         # Doesn't check if player is in check
 
-        legal_moves = []
+        legal_moves = set()
 
         if isinstance(piece, Pawn):
             return self._get_legal_pawn_moves(piece)
@@ -284,16 +339,16 @@ class Game:
 
                     if piece_at_coord is not None:  # Stop checking for moves if piece is in the way
                         if piece_at_coord.colour != self.current_player.colour:  # if same colour ignore
-                            legal_moves.append(new_pos_notation)
+                            legal_moves.add(new_pos_notation)
                         break
 
-                    legal_moves.append(new_pos_notation)
+                    legal_moves.add(new_pos_notation)
 
             elif self.board[str(new_pos)] is not None and self.board[str(new_pos)].colour != self.current_player.colour:
-                legal_moves.append(new_pos)
+                legal_moves.add(new_pos)
 
             elif self.board[str(new_pos)] is None:
-                legal_moves.append(new_pos)
+                legal_moves.add(new_pos)
 
         return legal_moves
 
@@ -317,21 +372,39 @@ class Game:
 
         return MoveStatus.VALID_SETUP, current_pos, move_pos
 
-    def _make_pawn_move(self, piece: Pawn, new_move_position: BoardCoordinates) -> MoveStatus:
-        move_status, current_pos, move_pos = self._set_up_move(piece, new_move_position)
+    def _make_pawn_move(self, pawn: Pawn, new_move_position: BoardCoordinates) -> MoveStatus:
+        move_status, current_pos, move_pos = self._set_up_move(pawn, new_move_position)
 
         if move_status != MoveStatus.VALID_SETUP:
             return move_status
 
-        if abs(piece.pos - new_move_position) == (1, 1):
+        if abs(pawn.pos - new_move_position) == (1, 1):
             piece_at_board_pos = self.board.get(str(
                 new_move_position - (0, 1) if self.current_player.colour == WHITE else new_move_position + (0, 1)
             ))
             self.current_player.captured_pieces.append(piece_at_board_pos)
             self.board.set(piece_at_board_pos.pos, None)
 
+        if abs(pawn.pos - new_move_position) in ((0, -2), (0, 2)):
+
+            try:
+                if self.current_player.colour == WHITE:
+                    self.en_passant_target = str(pawn.pos + (0, 2))
+
+            except InvalidPosition:
+                pass
+
+            try:
+                if self.current_player.colour == BLACK:
+                    self.en_passant_target = str(pawn.pos + (0, -2))
+
+            except InvalidPosition:
+                pass
+
+        pawn.has_moved = True
+
         self.board.set(current_pos, None)
-        self.board.set(move_pos, piece)
+        self.board.set(move_pos, pawn)
 
     def _make_king_move(self, piece: King, new_move_position: BoardCoordinates) -> MoveStatus:
         move_status, current_pos, move_pos, legal_moves = self._set_up_move(piece, new_move_position)
@@ -381,8 +454,10 @@ class Game:
         """ Returns a bool based on if the move was successful or not"""
         if isinstance(piece, Pawn):
             return self._make_pawn_move(piece, new_move_position)
+        else:
+            self.en_passant_target = None
 
-        elif isinstance(piece, King):
+        if isinstance(piece, King):
             return self._make_king_move(piece, new_move_position)
 
         current_pos = str(piece.pos)
@@ -422,7 +497,6 @@ class Game:
             board = self.board
 
         return self.king_pos[self.current_player.colour] in self._get_opponent_moves(board)
-
 
 
 class Player:

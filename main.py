@@ -12,9 +12,13 @@ def start() -> Game:
 
 def main():
     game = start()
+
     move_status = None
     while move_status != MoveStatus.KING_IN_CHECKMATE:
         game.board.display_ascii_board()
+        # game.board.to_fen(game)
+        print(game.en_passant_target)
+        print(game.current_player.colour)
 
         piece, move_position = None, None
         while piece is None or move_position is None:
@@ -41,7 +45,7 @@ def main():
                 move_pos.set_with_notation(move_position)
 
             except InvalidPosition:
-                print(f"Invalid move position: {move_position}")
+                print(f"Invalid move position input: {move_position}")
                 move_position = None
                 continue
 
