@@ -51,22 +51,26 @@ class Board(dict):
     def __init__(self, _board_dict: dict[str, [Optional[Piece]]]):
         super().__init__(_board_dict)
 
+    @property
+    def _fen(self):
+        return {"rank_1": "",
+                "rank_2": "",
+                "rank_3": "",
+                "rank_4": "",
+                "rank_5": "",
+                "rank_6": "",
+                "rank_7": "",
+                "rank_8": "",
+                "last_to_move": "",
+                "castling_rights": "-",
+                "en_passant_target": "-",
+                "halfmove_clock": "0",
+                "fullmove_counter": "0"
+                }
+
     def to_fen(self, game: Game):
         # TODO half/fullmove counter
-        fen = {"rank_1": "",
-               "rank_2": "",
-               "rank_3": "",
-               "rank_4": "",
-               "rank_5": "",
-               "rank_6": "",
-               "rank_7": "",
-               "rank_8": "",
-               "last_to_move": "w" if game.current_player.colour == WHITE else "b",
-               "castling_rights": "-",
-               "en_passant_target": "-",
-               "halfmove_clock": "0",
-               "fullmove_counter": "0"
-               }
+        fen = self._fen
 
         # Piece placement
         rank_counter = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0}
@@ -86,7 +90,6 @@ class Board(dict):
 
         # Castling rights
         castling_rights = ""
-        legal_white_king_moves = game.get_legal_moves(game.w_king)
         possible_white_h_rook = game.board.get("h1")
         possible_white_a_rook = game.board.get("a1")
         possible_black_h_rook = game.board.get("h8")
@@ -102,15 +105,14 @@ class Board(dict):
                 castling_rights += "k"
             if possible_black_a_rook is not None and not possible_black_a_rook.has_moved:
                 castling_rights += "q"
-        fen["castling_rights"] = castling_rights
 
-        legal_black_king_moves = game.get_legal_moves(game.b_king)
+        fen["castling_rights"] = castling_rights
 
         # FEN assembly
         # ei: rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2
         final_fen = "".join(fen[f"rank_{rank}"] + "/" for rank in range(8, 1, -1))
         final_fen += fen[f"rank_{1}"]
-        final_fen += " " + fen["last_to_move"]
+        final_fen += " " + "w" if game.current_player.colour == WHITE else "b"
         final_fen += " " + fen["castling_rights"]
         final_fen += " " + fen["en_passant_target"]
         final_fen += " " + fen["halfmove_clock"]
@@ -154,6 +156,7 @@ class Game:
     def __init__(self, player_1: Player, player_2: Player):
         self.w_king = k(WHITE)
         self.b_king = k(BLACK)
+        self._pieces = {}
         # set up board
         _b = {
             "a8": r(BLACK), "b8": n(BLACK), "c8": b(BLACK), "d8": q(BLACK), "e8": self.b_king, "f8": b(BLACK),
@@ -173,6 +176,10 @@ class Game:
         for coord, piece in self.board.items():  # for calculation
             if piece is not None:
                 piece.pos.set_with_notation(coord)
+                # set send pieces to own dict to prevent having to iterate over the entire board
+                # id not used but needed to differentiate between instances
+
+                self._pieces[(str(piece), id(piece))] = piece
 
         # set up players
         # this can now be randomized easily
@@ -182,9 +189,19 @@ class Game:
                           "BLACK": {"piece": None, "pos": None}}
         self.en_passant_target = None
 
-        # TODO is this easier?
-        # self.current_piece
-        # self.last_moved_piece
+    def get_pieces(self, colour: Optional[Colour]):
+        pieces = {}
+        if colour is None:
+            pieces = self._pieces
+        elif colour == WHITE:
+            for piece_id, piece in self._pieces.items():
+                if piece_id[0].isupper():
+                    pieces[id] = piece
+        elif colour == BLACK:
+            for piece_id, piece in self._pieces.items():
+                if piece_id[0].islower():
+                    pieces[piece_id] = piece
+        return pieces
 
     @property
     def king_pos(self):
@@ -207,8 +224,17 @@ class Game:
         else:  # If not possible
             return False
 
-    def _get_legal_pawn_moves(self, pawn: Pawn) -> set[BoardCoordinates]:
-        legal_moves = set()
+    @staticmethod
+    def _remove_duplicates(array: list[BoardCoordinates]) -> list[BoardCoordinates]:
+        # TODO is this needed?
+        temp = []
+        for coord in array:
+            if coord not in temp:
+                temp.append(coord)
+        return temp
+
+    def _get_legal_pawn_moves(self, pawn: Pawn) -> list[BoardCoordinates]:
+        legal_moves = []
 
         for move in pawn.move_atlas:
             try:
@@ -230,21 +256,21 @@ class Game:
                 if self.en_passant_target is not None:
                     try:
                         if self.en_passant_target == str(pawn.pos + (-1, 0)):
-                            legal_moves.add(pawn.pos + (-1, 1) if pawn.colour == WHITE else pawn.pos + (-1, -1))
+                            legal_moves.append(pawn.pos + (-1, 1) if pawn.colour == WHITE else pawn.pos + (-1, -1))
                     except InvalidPosition:
                         pass
 
                     try:
                         if self.en_passant_target == str(pawn.pos + (1, 0)):
-                            legal_moves.add(pawn.pos + (1, 1) if pawn.colour == WHITE else pawn.pos + (1, -1))
+                            legal_moves.append(pawn.pos + (1, 1) if pawn.colour == WHITE else pawn.pos + (1, -1))
                     except InvalidPosition:
                         pass
-                legal_moves.add(new_move)
+                legal_moves.append(new_move)
 
             except InvalidPosition:
                 pass
 
-        return legal_moves
+        return self._remove_duplicates(legal_moves)
 
     def _get_opponent_moves(self, board: Board = None) -> list[str]:
         if board is None:
@@ -270,8 +296,8 @@ class Game:
 
         return opponent_moves
 
-    def _get_legal_king_moves(self, king: King) -> dict[str, [Optional[set[BoardCoordinates]], dict[str, [bool]]]]:
-        legal_moves = set()
+    def _get_legal_king_moves(self, king: King) -> dict[str, [Optional[list[BoardCoordinates]], dict[str, [bool]]]]:
+        legal_moves = []
         a_castling, h_castling = False, False
 
         # check if castling possible
@@ -308,7 +334,7 @@ class Game:
                 if piece_at_pos is None or piece_at_pos.colour == self.current_player.colour:
                     continue
                 else:
-                    legal_moves.add(move)
+                    legal_moves.append(move)
 
         opponent_moves = self._get_opponent_moves()
 
@@ -318,10 +344,10 @@ class Game:
         return {"legal_moves": legal_moves, "legal_castling": {"a": a_castling, "h": h_castling}}
 
     def get_legal_moves(self, piece: Piece) -> \
-            Union[set[BoardCoordinates], dict[str, [set[BoardCoordinates], dict[str, str]]]]:
+            Union[list[BoardCoordinates], dict[str, [list[BoardCoordinates], dict[str, str]]]]:
         # Doesn't check if player is in check
 
-        legal_moves = set()
+        legal_moves = []
 
         if isinstance(piece, Pawn):
             return self._get_legal_pawn_moves(piece)
@@ -329,33 +355,41 @@ class Game:
         elif isinstance(piece, King):
             return self._get_legal_king_moves(piece)
 
-        for move_x, move_y in piece.move_atlas:
-            try:
-                new_pos = piece.pos + BoardCoordinates(move_x, move_y)
-
-            except InvalidPosition:
-                continue
+        for coord in piece.move_atlas:
 
             if piece.can_make_long_move:
-                while 1 <= new_pos.x + move_x <= 8 and 1 <= new_pos.y + move_y <= 8:  # check all possible spaces
-                    new_pos.x += move_x
-                    new_pos.y += move_y
+                new_pos = piece.pos
+
+                while 1 <= piece.pos.x + coord.x <= 8 and 1 <= new_pos.y + coord.y <= 8:  # check all possible spaces
+                    # TODO pretty sure this is why it's fucking up
+                    try:
+                        new_pos += coord
+                    except InvalidPosition:
+                        break
+                    # ---------------------------
 
                     new_pos_notation = str(new_pos)
                     piece_at_coord = self.board.get(new_pos_notation)
 
                     if piece_at_coord is not None:  # Stop checking for moves if piece is in the way
                         if piece_at_coord.colour != self.current_player.colour:  # if same colour ignore
-                            legal_moves.add(new_pos_notation)
+                            legal_moves.append(new_pos)
                         break
 
-                    legal_moves.add(new_pos)
+                    legal_moves.append(new_pos)
 
-            elif self.board[str(new_pos)] is not None and self.board[str(new_pos)].colour != self.current_player.colour:
-                legal_moves.add(new_pos)
+            else:
+                try:
+                    new_pos = piece.pos + coord
 
-            elif self.board[str(new_pos)] is None:
-                legal_moves.add(new_pos)
+                except InvalidPosition:
+                    continue
+
+            if self.board[str(new_pos)] is None:
+                legal_moves.append(new_pos)
+
+            elif self.board[str(new_pos)].colour != self.current_player.colour:
+                legal_moves.append(new_pos)
 
         return legal_moves
 
@@ -363,8 +397,23 @@ class Game:
         current_pos = str(piece.pos)
         move_pos = str(new_move_position)
         legal_moves = self.get_legal_moves(piece)
+        invalid_move = False
 
-        if new_move_position not in legal_moves:
+        if isinstance(legal_moves, dict) and legal_moves["legal_moves"] is not None and new_move_position not in legal_moves["legal_moves"]:
+            invalid_move = True
+        elif (
+            isinstance(legal_moves, dict)
+            and legal_moves["legal_moves"] is None
+            and not legal_moves["legal_castling"]["a"]
+            and not legal_moves["legal_castling"]["h"]
+        ):
+            invalid_move = True
+        elif not isinstance(legal_moves, dict) and new_move_position not in legal_moves:
+            invalid_move = True
+
+        if invalid_move:
+            if isinstance(piece, King):
+                return MoveStatus.INVALID_MOVE, None, None, None
             return MoveStatus.INVALID_MOVE, None, None
 
         temp_board = deepcopy(self.board)

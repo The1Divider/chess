@@ -32,18 +32,18 @@ class BoardCoordinates:
         2  (1, 2)   (2, 2)   (3, 2)   (4, 2)   (5, 2)   (6, 2)   (7, 2)   (8, 2)\n
         1  (1, 1)   (2, 1)   (3, 1)   (4, 1)   (5, 1)   (6, 1)   (7, 1)   (8, 1)\n
 
-        """
+    """
+
     x: int
     y: int
 
     def __eq__(self, other: Union[BoardCoordinates, str]):
         if isinstance(other, str):  # not sure where this is taking place but is needed to fix this garbage
             return str(self) == other
+        elif isinstance(other, tuple):
+            return self.x == other[0] and self.y == other[1]
 
         return self.x == other.x and self.y == other.y
-
-    def __hash__(self):
-        return hash((self.x, self.y))
 
     def __add__(self, other: Union[tuple[int, int], BoardCoordinates]):
         if isinstance(other, tuple):
@@ -134,7 +134,7 @@ class InvalidPosition(Exception):
 class Piece:
     pos: BoardCoordinates
     colour: Colour
-    move_atlas: list[tuple[int, int]]
+    move_atlas: list[BoardCoordinates]
     can_make_long_move: bool
 
     def __init__(self):
@@ -142,7 +142,10 @@ class Piece:
 
 
 class Pawn(Piece):
-    move_atlas = [(0, 1), (0, 2), (1, 1), (-1, 1)]
+    move_atlas = [BoardCoordinates(0, 1),
+                  BoardCoordinates(0, 2),
+                  BoardCoordinates(1, 1),
+                  BoardCoordinates(-1, 1)]
     can_make_long_move = False
     has_moved = False
     atlas_was_flipped = False
@@ -152,14 +155,21 @@ class Pawn(Piece):
         super().__init__()
 
         if self.colour == BLACK:
-            self.move_atlas = [(move[0], -move[1]) for move in self.move_atlas]
+            temp = []
+            for move in self.move_atlas:
+                move = BoardCoordinates(move.x, -move.y)
+                temp.append(move)
+            self.move_atlas = temp
 
     def __str__(self):
         return 'P' if self.colour == WHITE else 'p'
 
 
 class Rook(Piece):
-    move_atlas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+    move_atlas = [BoardCoordinates(0, 1),
+                  BoardCoordinates(0, -1),
+                  BoardCoordinates(1, 0),
+                  BoardCoordinates(-1, 0)]
     can_make_long_move = True
     has_moved = False
 
@@ -172,7 +182,14 @@ class Rook(Piece):
 
 
 class Knight(Piece):
-    move_atlas = [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]
+    move_atlas = [BoardCoordinates(2, 1),
+                  BoardCoordinates(2, -1),
+                  BoardCoordinates(-2, 1),
+                  BoardCoordinates(-2, -1),
+                  BoardCoordinates(1, 2),
+                  BoardCoordinates(1, -2),
+                  BoardCoordinates(-1, 2),
+                  BoardCoordinates(-1, -2)]
     can_make_long_move = False
 
     def __init__(self, colour: Colour):
@@ -184,7 +201,11 @@ class Knight(Piece):
 
 
 class Bishop(Piece):
-    move_atlas = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
+    move_atlas = [BoardCoordinates(1, 1),
+                  BoardCoordinates(-1, 1),
+                  BoardCoordinates(-1, -1),
+                  BoardCoordinates(1, -1)]
+
     can_make_long_move = True
 
     def __init__(self, colour: Colour):
@@ -196,7 +217,15 @@ class Bishop(Piece):
 
 
 class Queen(Piece):
-    move_atlas = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    move_atlas = [BoardCoordinates(0, 1),
+                  BoardCoordinates(0, -1),
+                  BoardCoordinates(1, 0),
+                  BoardCoordinates(-1, 0),
+                  BoardCoordinates(1, 1),
+                  BoardCoordinates(1, -1),
+                  BoardCoordinates(-1, 1),
+                  BoardCoordinates(-1, -1)]
+
     can_make_long_move = True
 
     def __init__(self, colour: Colour):
@@ -208,7 +237,15 @@ class Queen(Piece):
 
 
 class King(Piece):
-    move_atlas = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    move_atlas = [BoardCoordinates(0, 1),
+                  BoardCoordinates(0, -1),
+                  BoardCoordinates(1, 0),
+                  BoardCoordinates(-1, 0),
+                  BoardCoordinates(1, 1),
+                  BoardCoordinates(1, -1),
+                  BoardCoordinates(-1, 1),
+                  BoardCoordinates(-1, -1)]
+
     can_make_long_move = False
     has_moved = False
 
