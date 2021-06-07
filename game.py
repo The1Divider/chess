@@ -22,6 +22,7 @@ PIECE = Literal[PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING]
 p, r, n, b, q, k = Pawn, Rook, Knight, Bishop, Queen, King
 
 
+# TODO notify user when king in check
 # TODO align en passant target calc with FEN notation ({rank}[3/6]) (if pawn.x +/- 1 == target -> en passant)
 # TODO implement halfmove clock
 # TODO implement move count
@@ -45,6 +46,7 @@ class MoveStatus(Enum):
     PUTS_KING_IN_CHECK = auto()
 
     KING_IN_CHECKMATE = auto()
+    DRAW = auto()
 
 
 class Board(dict):
@@ -137,19 +139,17 @@ class Board(dict):
 
         self[key] = value
 
-    def display_ascii_board(self) -> None:
-        _board = ["    a    b    c    d    e    f    g    h", "  " + "-" * 41]
+    def to_ascii(self) -> list[str]:
+        board = ["    a    b    c    d    e    f    g    h", "  " + "-" * 41]
         for y in range(1, 9):
             rank = f"{y} |"
             for x in range(1, 9):
                 piece = self[f"{chr(x + 96)}{y}"]
                 rank += f" {str(piece)}  |" if piece is not None else "    |"
-            _board.append(rank)
-            _board.append("  " + "-" * 41)
-
-        _board.reverse()
-        for row in _board:
-            print(row)
+            board.append(rank)
+            board.append("  " + "-" * 41)
+        board.reverse()
+        return board
 
 
 class Game:
@@ -339,7 +339,7 @@ class Game:
         opponent_moves = self._get_opponent_moves()
 
         if all(legal_move in opponent_moves for legal_move in legal_moves):
-            legal_moves = None  # Checkmate
+            legal_moves = None  # Possible Checkmate
 
         return {"legal_moves": legal_moves, "legal_castling": {"a": a_castling, "h": h_castling}}
 
@@ -408,6 +408,7 @@ class Game:
             and not legal_moves["legal_castling"]["h"]
         ):
             invalid_move = True
+                
         elif not isinstance(legal_moves, dict) and new_move_position not in legal_moves:
             invalid_move = True
 

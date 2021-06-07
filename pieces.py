@@ -69,7 +69,7 @@ class BoardCoordinates:
         return abs(self.x), abs(self.y)
 
     def __str__(self):
-        return self._get_notation()
+        return self.get_notation()
 
     def set_with_xy(self, coordinates: Union[tuple[int, int], list[int, int]]) -> None:
         self.x, self.y = self.check_bounds(coordinates)
@@ -90,7 +90,7 @@ class BoardCoordinates:
         except (TypeError, InvalidPosition):
             raise InvalidPosition(coordinate)
 
-    def _get_notation(self) -> str:
+    def get_notation(self) -> str:
         return chr(96 + self.x) + str(self.y)
 
     def check_bounds(self, *coordinate) -> Optional[Union[tuple[int, int], BoardCoordinates]]:
