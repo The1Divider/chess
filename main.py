@@ -1,5 +1,4 @@
-import sys
-from typing import Generator, Iterator
+from typing import Iterator
 
 from game import *
 
@@ -76,6 +75,9 @@ class Test:
         for test, end_state in self.test_states.items():
             print(f"\nTest: {test}")
 
+            if end_state is None:
+                print("No end state")
+
             for line in end_state:
                 print(line)
 
@@ -84,10 +86,16 @@ class Test:
     def get_player_input(self, game: Game) -> Union[tuple[Piece, BoardCoordinates], tuple[None, None]]:
         try:
             test, test_coords = next(self._test_gen)
+
+        except NextTest:  # save last board state
+            self.test_states[self.current_test] = game.board.to_ascii()
+            raise NextTest
+
         except StopIteration:
             raise LastTest
 
-        self.test_states[test] = game.board.to_ascii()
+        self.test_states[self.current_test] = game.board.to_ascii()
+
 
         try:
             piece_pos, move_pos = BoardCoordinates(-1, -1), BoardCoordinates(-1, -1)
@@ -192,22 +200,26 @@ class Chess:
 class NextTest(Exception):
     pass
 
+
 class LastTest(Exception):
     pass
 
 
 if DEBUG:
     tests = Test()
-    try:
-        while True:
-            current_game = Chess()
-            current_game.get_player_input = tests.get_player_input
-            try:
-                current_game.start_game_loop()
-            except NextTest:
-                pass
-    except LastTest:
-        tests.finished_tests()
+    while True:
+        current_game = Chess()
+        current_game.get_player_input = tests.get_player_input
+
+        try:
+            current_game.start_game_loop()
+
+        except NextTest:
+            continue
+
+        except LastTest:
+            break
+    tests.finished_tests()
 else:
     current_game = Chess()
     current_game.start_game_loop()
