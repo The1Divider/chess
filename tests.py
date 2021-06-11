@@ -3,33 +3,31 @@ from game import BoardCoordinates, Game, Piece, InvalidPosition
 
 
 LAST: Literal[None] = None
+TestGeneratorType = Iterator[Union[tuple[str, str], tuple[None, None]]]
+
 last_test = False
 next_test = False
 
 
-TestGeneratorType = Iterator[Union[tuple[str, str], tuple[None, None]]]
-
-
 class InvalidTestCoords(Exception):
+    """Invalid coordinates in test"""
     def __init__(self, coords: [str]):
         super().__init__(f"Invalid test received: {coords}")
 
 
 class InvalidTestPiece(Exception):
+    """Invalid piece selection"""
     def __init__(self, piece_coords: BoardCoordinates):
         super().__init__(f"Invalid test piece selection: {piece_coords}")
 
 
-class TestsFinished(Exception):
-    def __init__(self):
-        super().__init__()
-
-
 class NextTest(Exception):
+    """raised when current test finishes"""
     pass
 
 
 class LastTest(Exception):
+    """raised when testing finishes"""
     pass
 
 
@@ -52,7 +50,7 @@ class Test:
 
         self._test_gen = self._create_test_gen()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):  # pretty sure this doesn't work
         print(f"An exception occurred:"
               f"----------------------"
               f"Exception Type: {exc_type}"
@@ -63,13 +61,14 @@ class Test:
         quit(2)
 
     def _create_test_gen(self) -> TestGeneratorType:
+        """returns an iterator for all tests"""
         for test, moves in self.tests.items():
             for move in moves:
 
-                if move is LAST:
+                if move is LAST:  # if test is done
                     yield LAST, LAST
 
-                if test != self.current_test:
+                if test != self.current_test:  # display new test name
                     print(f"Test: {test}")
                     self.current_test = test
 
@@ -84,41 +83,51 @@ class Test:
         for test, end_state in self.test_states.items():
             print(f"\nTest: {test}")
 
-            if end_state is None:
+            if end_state is None:  # if no test
                 print("No end state")
+                continue
 
-            for line in end_state:
+            for line in end_state:  # print board
                 print(line)
 
         return None, None
 
     def get_player_input(self, game: Game) -> Union[tuple[Piece, BoardCoordinates], tuple[None, None]]:
+        """ Monkey-patched input used in main game loop"""
         try:
             test, test_coords = next(self._test_gen)
 
             if test is LAST and test_coords is LAST:
                 next(self._test_gen)
-                self.test_states[self.current_test] = game.board.to_ascii()
-                raise NextTest
-            print(test, test_coords)
-        except StopIteration:
-            raise LastTest
 
-        self.test_states[self.current_test] = game.board.to_ascii()
+                if self.test_states.get(self.current_test) is not None:
+                    self.test_states[self.current_test] = game.board.to_ascii()  # save last state
+
+                else:
+                    self.test_states[self.current_test] = None  # prevent starting state from being saved if no test
+
+                raise NextTest  # restart game instance + goto next test
+
+        except StopIteration:
+            raise LastTest  # break out of testing loop and display final states
+
+        self.test_states[self.current_test] = game.board.to_ascii()  # store current board state
 
         try:
-            piece_pos, move_pos = BoardCoordinates(-1, -1), BoardCoordinates(-1, -1)
+            piece_pos, move_pos = BoardCoordinates(-1, -1), BoardCoordinates(-1, -1)  # init to invalid positions
+
+            # parse input
             test_coords = test_coords.split(" ")
             piece_pos.set_with_notation(test_coords[0])
 
-            piece = game.board.get(str(piece_pos))
+            piece = game.board.get(str(piece_pos))  # get piece at pos
 
-            if piece is None or piece.colour != game.current_player.colour:
+            if piece is None or piece.colour != game.current_player.colour:  # if invalid selection
                 raise InvalidTestPiece(piece_pos)
 
-            move_pos.set_with_notation(test_coords[1])
+            move_pos.set_with_notation(test_coords[1])  # move piece
 
             return piece, move_pos
 
-        except InvalidPosition:
+        except InvalidPosition:  # if invalid move
             raise InvalidTestCoords(test_coords)
