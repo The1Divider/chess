@@ -23,13 +23,12 @@ p, r, n, b, q, k = Pawn, Rook, Knight, Bishop, Queen, King
 
 
 # TODO notify user when king in check
-# TODO align en passant target calc with FEN notation ({rank}[3/6]) (if pawn.x +/- 1 == target -> en passant)
 # TODO implement halfmove clock
 # TODO implement move count
 # TODO implement repetition rules (should be 'fairly' straightforward as moves need to be logged anyways
 #      (might have difficulty with pattern rec)
 
-# TODO import / export PGN !!(For testing)!!
+# TODO import / export PGN
 # TODO test positions/scenarios
 # TODO integrate stockfish (/alpha zero?)
 # TODO import/export FEN
@@ -170,7 +169,8 @@ class Game:
             "a2": p(WHITE), "b2": p(WHITE), "c2": p(WHITE), "d2": p(WHITE), "e2": p(WHITE), "f2": p(WHITE),
             "g2": p(WHITE), "h2": p(WHITE),
             "a1": r(WHITE), "b1": n(WHITE), "c1": b(WHITE), "d1": q(WHITE), "e1": self.w_king, "f1": b(WHITE),
-            "g1": n(WHITE), "h1": r(WHITE)}
+            "g1": n(WHITE), "h1": r(WHITE)
+        }
         self.board = Board(_b)
 
         for coord, piece in self.board.items():  # for calculation
@@ -305,6 +305,7 @@ class Game:
             rank = 1 if self.current_player.colour == WHITE else 8
             back_rank = [self.board.get(f"{file}{rank}") for file in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h')]
             possible_a_rook, possible_f_rook = back_rank[0], back_rank[7]
+
             try:
                 if (
                         isinstance(back_rank[0], Rook)
@@ -313,6 +314,7 @@ class Game:
                         and self._check_if_legal_castle(side='a')
                 ):
                     a_castling = True
+
             except AttributeError:
                 pass
 
@@ -324,6 +326,7 @@ class Game:
                         and self._check_if_legal_castle(side='h')
                 ):
                     h_castling = True
+
             except AttributeError:
                 pass
 
@@ -331,8 +334,10 @@ class Game:
             for move in king.move_atlas:
                 new_pos = king.pos + move
                 piece_at_pos = self.board.get(str(new_pos))
+
                 if piece_at_pos is None or piece_at_pos.colour == self.current_player.colour:
                     continue
+
                 else:
                     legal_moves.append(move)
 
@@ -361,12 +366,12 @@ class Game:
                 new_pos = piece.pos
 
                 while 1 <= piece.pos.x + coord.x <= 8 and 1 <= new_pos.y + coord.y <= 8:  # check all possible spaces
-                    # TODO pretty sure this is why it's fucking up
+
                     try:
                         new_pos += coord
+
                     except InvalidPosition:
                         break
-                    # ---------------------------
 
                     new_pos_notation = str(new_pos)
                     piece_at_coord = self.board.get(new_pos_notation)
@@ -399,8 +404,13 @@ class Game:
         legal_moves = self.get_legal_moves(piece)
         invalid_move = False
 
-        if isinstance(legal_moves, dict) and legal_moves["legal_moves"] is not None and new_move_position not in legal_moves["legal_moves"]:
+        if (
+            isinstance(legal_moves, dict)
+            and legal_moves["legal_moves"] is not None
+            and new_move_position not in legal_moves["legal_moves"]
+        ):
             invalid_move = True
+
         elif (
             isinstance(legal_moves, dict)
             and legal_moves["legal_moves"] is None
