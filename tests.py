@@ -1,5 +1,10 @@
+import logging
+import os
+import sys
+import traceback
 from typing import Iterator, Union, Literal
-from game import BoardCoordinates, Game, Piece, InvalidPosition
+from game import BoardCoordinates, Game, Piece, InvalidPosition, Player, BLACK, WHITE
+from main import Chess
 
 
 LAST: Literal[None] = None
@@ -50,16 +55,6 @@ class Test:
 
         self._test_gen = self._create_test_gen()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):  # pretty sure this doesn't work
-        print(f"An exception occurred:"
-              f"----------------------"
-              f"Exception Type: {exc_type}"
-              f"Exception Value: {exc_val}"
-              f"Exception Traceback:\n{exc_tb}"
-              f"\nCurrent Test: {self.test_states.keys()[-1]}"
-              f"Current State: {self.test_states[self.test_states.keys()[-1]]}")
-        quit(2)
-
     def _create_test_gen(self) -> TestGeneratorType:
         """returns an iterator for all tests"""
         for test, moves in self.tests.items():
@@ -75,6 +70,8 @@ class Test:
                 yield test, move
 
     def finished_tests(self) -> tuple[None, None]:
+        os.system('cls' if os.name == 'nt' else 'clear')
+
         print(f"\n----------------------------------"
               f"All tests passed!"
               f"----------------------------------\n\n"
@@ -91,6 +88,9 @@ class Test:
                 print(line)
 
         return None, None
+
+    def start(self) -> tuple[Player, Player]:
+        return Player("WHITE", WHITE), Player("BLACK", BLACK)
 
     def get_player_input(self, game: Game) -> Union[tuple[Piece, BoardCoordinates], tuple[None, None]]:
         """ Monkey-patched input used in main game loop"""
@@ -131,3 +131,47 @@ class Test:
 
         except InvalidPosition:  # if invalid move
             raise InvalidTestCoords(test_coords)
+
+
+def unknown_exception(exception_description):
+    template = """
+    File: {file_name} @ L{line_number}
+    Function: {function_name}
+    Caused: {exception_name}
+    Source: {source}
+    """
+    exception_type, exception_value, exception_traceback = sys.exc_info()
+
+    for traceback_info in traceback.extract_tb(exception_traceback):
+        file_name, line_number, function_name, source = traceback_info
+        function_name = function_name if function_name == "<module>" else function_name + "()"
+        print(template.format(file_name=os.path.basename(file_name),
+                              line_number=line_number,
+                              exception_name=exception_type.__name__,
+                              function_name=function_name,
+                              source=source))
+
+    print(exception_description)
+
+
+if __name__ == "__main__":
+    try:
+        tests = Test()
+        _Chess = Chess
+        _Chess.start = tests.start
+        _Chess.get_player_input = tests.get_player_input
+        while True:
+            current_game = _Chess()
+
+            try:
+                current_game.start_game_loop()
+
+            except NextTest:
+                continue
+
+            except LastTest:
+                break
+
+        tests.finished_tests()
+    except Exception as e:
+        unknown_exception(e)

@@ -1,7 +1,12 @@
 from game import *
-from tests import Test, NextTest, LastTest
 
-DEBUG = True
+
+class _Exception(BaseException):
+    def __init__(self, *args):
+        if isinstance(args[0], BaseException):
+            self.exception = args[0]
+        else:
+            raise super().__init__("Exceptions must derive from BaseException")
 
 
 class Chess:
@@ -12,11 +17,7 @@ class Chess:
     def start_game_loop(self):
         self._game_loop()
 
-    @staticmethod
-    def start() -> tuple[Player, Player]:
-        if DEBUG:
-            return Player("white", WHITE), Player("black", BLACK)
-
+    def start(self) -> tuple[Player, Player]:
         player_1_name = input("Player 1: ")
         player_2_name = input("Player 2: ")
 
@@ -59,7 +60,7 @@ class Chess:
             for row in self.game.board.to_ascii():
                 print(row)
 
-            piece, move_pos = self.get_player_input() if not DEBUG else self.get_player_input(self.game)
+            piece, move_pos = self.get_player_input(self.game)
 
             if piece is None or move_pos is None:
                 continue
@@ -86,21 +87,6 @@ class Chess:
                 raise Exception(f"Move status: '{move_status}' received")
 
 
-if DEBUG:
-    tests = Test()
-    while True:
-        current_game = Chess()
-        current_game.get_player_input = tests.get_player_input
-
-        try:
-            current_game.start_game_loop()
-
-        except NextTest:
-            continue
-
-        except LastTest:
-            break
-    tests.finished_tests()
-else:
+if __name__ == "__main__":
     current_game = Chess()
     current_game.start_game_loop()
