@@ -1,5 +1,7 @@
 # dummy aliases
 WHITE, BLACK = "", ""
+
+
 def dummy(x): pass
 
 
@@ -34,9 +36,17 @@ starting_board = {
     "a2": "p", "b2": "p", "c2": "p", "d2": "p", "e2": "p", "f2": "p", "g2": "p", "h2": "p",
     "a1": "p", "b1": "p", "c1": "p", "d1": "p", "e1": "p", "f1": "p", "g1": "p", "h1": "p"}
 
+starting_board_empty = {
+    "a8": None, "b8": None, "c8": None, "d8": None, "e8": None, "f8": None, "g8": None, "h8": None,
+    "a7": None, "b7": None, "c7": None, "d7": None, "e7": None, "f7": None, "g7": None, "h7": None,
+    "a6": None, "b6": None, "c6": None, "d6": None, "e6": None, "f6": None, "g6": None, "h6": None,
+    "a5": None, "b5": None, "c5": None, "d5": None, "e5": None, "f5": None, "g5": None, "h5": None,
+    "a4": None, "b4": None, "c4": None, "d4": None, "e4": None, "f4": None, "g4": None, "h4": None,
+    "a3": None, "b3": None, "c3": None, "d3": None, "e3": None, "f3": None, "g3": None, "h3": None,
+    "a2": None, "b2": None, "c2": None, "d2": None, "e2": None, "f2": None, "g2": None, "h2": None,
+    "a1": None, "b1": None, "c1": None, "d1": None, "e1": None, "f1": None, "g1": None, "h1": None
+}
+
 starting_fen = None
 
 starting_png = None
-
-
-

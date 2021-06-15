@@ -1,12 +1,6 @@
+from random import randint
+
 from game import *
-
-
-class _Exception(BaseException):
-    def __init__(self, *args):
-        if isinstance(args[0], BaseException):
-            self.exception = args[0]
-        else:
-            raise super().__init__("Exceptions must derive from BaseException")
 
 
 class Chess:
@@ -21,7 +15,10 @@ class Chess:
         player_1_name = input("Player 1: ")
         player_2_name = input("Player 2: ")
 
-        return Player(player_1_name, WHITE), Player(player_2_name, BLACK)
+        player_1_colour = WHITE if randint(0, 1) == 0 else BLACK
+        player_2_colour = BLACK if player_1_colour == WHITE else BLACK
+
+        return Player(player_1_name, player_1_colour), Player(player_2_name, player_2_colour)
 
     def get_player_input(self, game: Optional[Game] = None):
         player_input = input(">").split(" ")
